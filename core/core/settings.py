@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'llm_config',
+    "PDF_Upload",
 ]
 
 MIDDLEWARE = [
