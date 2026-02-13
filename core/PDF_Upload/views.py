@@ -1,6 +1,8 @@
 import uuid
 import os
 import tempfile
+import json
+import requests
 from django.http import StreamingHttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -52,3 +54,69 @@ def Process_PDF(request):
         "file": pdf_file.name,
         "chunks": len(chunks)
     }, status=201)
+
+
+@csrf_exempt
+def Chat_Request(request):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "POST request required"}, status=400)
+
+    try:
+        body = json.loads(request.body)
+        question = body.get("question")
+
+        if not question:
+            return JsonResponse({"status": "error", "message": "Question is required"}, status=400)
+
+        query_embedding = model.encode(question).tolist()
+
+        results = collection.query(
+            query_embeddings=[query_embedding],
+            n_results=3
+        )
+
+        context_docs = results["documents"][0]
+
+        if not context_docs:
+            return JsonResponse({
+                "status": "error",
+                "message": "No relevant documents found"
+            }, status=404)
+
+        context = "\n\n".join(context_docs)
+
+        # 3️⃣ Send to Ollama
+        prompt = f"""
+        Answer the question based ONLY on the context below.
+
+        Context:
+        {context}
+
+        Question:
+        {question}
+
+        Answer:
+        """
+
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3",
+                "prompt": prompt,
+                "stream": False
+            }
+        )
+
+        answer = response.json().get("response", "No response")
+
+        return JsonResponse({
+            "status": "success",
+            "question": question,
+            "answer": answer
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e)
+        }, status=500)
