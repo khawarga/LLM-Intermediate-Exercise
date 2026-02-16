@@ -8,12 +8,13 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentence_transformers import SentenceTransformer
 import chromadb
+from chromadb.config import Settings
 from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-client = chromadb.Client()
-collection = client.get_or_create_collection(name="docs")
+embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma_client.get_or_create_collection(name="docs")
 
 
 @csrf_exempt
@@ -37,7 +38,7 @@ def Process_PDF(request):
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_text(text)
 
-    embeddings = model.encode(chunks)
+    embeddings = embedding_model.encode(chunks)
     ids = [str(uuid.uuid4()) for _ in chunks]
 
     collection.add(
@@ -64,11 +65,12 @@ def Chat_Request(request):
     try:
         body = json.loads(request.body)
         question = body.get("question")
+        model = body.get("model", "llama3")
 
         if not question:
             return JsonResponse({"status": "error", "message": "Question is required"}, status=400)
 
-        query_embedding = model.encode(question).tolist()
+        query_embedding = embedding_model.encode(question).tolist()
 
         results = collection.query(
             query_embeddings=[query_embedding],
@@ -101,7 +103,7 @@ def Chat_Request(request):
         response = requests.post(
             "http://localhost:11434/api/generate",
             json={
-                "model": "llama3",
+                "model": model,
                 "prompt": prompt,
                 "stream": False
             }
