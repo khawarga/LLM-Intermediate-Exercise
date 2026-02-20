@@ -12,6 +12,10 @@ from chromadb.config import Settings
 from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from llm_config.models import LLMConfig
+from .serializers import LLMConfigSerializer
+from rest_framework import viewsets
+
 embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(name="docs")
@@ -87,7 +91,6 @@ def Chat_Request(request):
 
         context = "\n\n".join(context_docs)
 
-        # 3️⃣ Send to Ollama
         prompt = f"""
         Answer the question based ONLY on the context below.
 
@@ -122,3 +125,8 @@ def Chat_Request(request):
             "status": "error",
             "message": str(e)
         }, status=500)
+
+
+class llm_configViewSet(viewsets.ModelViewSet):
+    queryset = LLMConfig.objects.all()
+    serializer_class = LLMConfigSerializer
