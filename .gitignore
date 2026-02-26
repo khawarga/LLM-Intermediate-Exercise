@@ -1,2 +1,6 @@
 /myenv
 /env
+
+env/
+core/chroma_db/
+frontend/node_modules/

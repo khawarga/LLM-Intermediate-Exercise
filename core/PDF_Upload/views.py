@@ -104,7 +104,7 @@ def Chat_Request(request):
         """
 
         response = requests.post(
-            "http://localhost:11434/api/generate",
+            "http://127.0.0.1:11434/api/generate",
             json={
                 "model": model,
                 "prompt": prompt,
@@ -112,7 +112,15 @@ def Chat_Request(request):
             }
         )
 
-        answer = response.json().get("response", "No response")
+        data = response.json()
+        print("OLLAMA RAW:", data)
+
+        if "response" in data:
+            answer = data["response"]
+        elif "message" in data and "content" in data["message"]:
+            answer = data["message"]["content"]
+        else:
+            answer = "No response"
 
         return JsonResponse({
             "status": "success",
@@ -125,7 +133,7 @@ def Chat_Request(request):
             "status": "error",
             "message": str(e)
         }, status=500)
-
+   
 
 class llm_configViewSet(viewsets.ModelViewSet):
     queryset = LLMConfig.objects.all()
