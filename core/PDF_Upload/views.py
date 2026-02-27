@@ -1,3 +1,4 @@
+from collections import Counter
 import uuid
 import os
 import tempfile
@@ -45,6 +46,9 @@ def Process_PDF(request):
     embeddings = embedding_model.encode(chunks)
     ids = [str(uuid.uuid4()) for _ in chunks]
 
+    deleted = collection.delete(where={"source": pdf_file.name})
+    print("Deleted:", deleted)
+
     collection.add(
         documents=chunks,
         embeddings=embeddings.tolist(),
@@ -80,6 +84,14 @@ def Chat_Request(request):
             query_embeddings=[query_embedding],
             n_results=3
         )
+
+        print("Retrieved sources:")
+
+        if results.get("metadatas") and len(results["metadatas"]) > 0:
+            for meta in results["metadatas"][0]:
+                print(meta.get("source"))
+        else:
+            print("No metadata returned")
 
         context_docs = results["documents"][0]
 
@@ -133,7 +145,7 @@ def Chat_Request(request):
             "status": "error",
             "message": str(e)
         }, status=500)
-   
+
 
 class llm_configViewSet(viewsets.ModelViewSet):
     queryset = LLMConfig.objects.all()

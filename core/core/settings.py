@@ -84,7 +84,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'llm_project',
-        'USER': 'llm_user',
+        'USER': 'my_user',  # llm_user for suvin, my_user for juan
         'PASSWORD': '12345',
         'HOST': 'localhost',
         'PORT': '5432'
